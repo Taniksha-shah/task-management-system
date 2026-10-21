@@ -1,0 +1,54 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: task-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - task-network
+
+  backend:
+    build: ./backend
+    container_name: task-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      # "mongo" is the service name, which Docker's internal DNS resolves
+      MONGO_URI: mongodb://mongo:27017/taskdb
+      JWT_SECRET: ${JWT_SECRET:-change_this_dev_secret}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - task-network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:3000/api
+    container_name: task-frontend
+    restart: unless-stopped
+    ports:
+      # Host 5173 matches the origin your backend's CORS config allows
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - task-network
+
+networks:
+  task-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
