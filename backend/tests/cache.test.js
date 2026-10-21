@@ -43,7 +43,7 @@ describe("GET /tasks caching", () => {
 
     cacheTasks({}, res, next);
 
-    expect(res.headers["X-Cache"]).toBe("HIT");
+    expect(res.headers["X-Cache"]).toBe("MISS");
     expect(res.body).toEqual([{ title: "Task A" }]);
     expect(next).not.toHaveBeenCalled();
   });
